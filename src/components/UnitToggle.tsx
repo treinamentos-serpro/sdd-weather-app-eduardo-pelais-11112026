@@ -17,8 +17,8 @@ export default function UnitToggle({ unit, onChange }: UnitToggleProps) {
         type="button"
         aria-pressed={unit === 'celsius'}
         onClick={() => onChange('celsius')}
-        className={`rounded-md px-3 py-1 text-sm font-semibold transition ${
-          unit === 'celsius' ? 'bg-accent-500 text-white' : 'text-white/60 hover:text-white'
+        className={`min-h-11 min-w-11 rounded-md px-3 py-1 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-400 ${
+          unit === 'celsius' ? 'bg-accent-500 text-white' : 'text-white/80 hover:text-white'
         }`}
       >
         °C
@@ -27,8 +27,8 @@ export default function UnitToggle({ unit, onChange }: UnitToggleProps) {
         type="button"
         aria-pressed={unit === 'fahrenheit'}
         onClick={() => onChange('fahrenheit')}
-        className={`rounded-md px-3 py-1 text-sm font-semibold transition ${
-          unit === 'fahrenheit' ? 'bg-accent-500 text-white' : 'text-white/60 hover:text-white'
+        className={`min-h-11 min-w-11 rounded-md px-3 py-1 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-400 ${
+          unit === 'fahrenheit' ? 'bg-accent-500 text-white' : 'text-white/80 hover:text-white'
         }`}
       >
         °F
