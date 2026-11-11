@@ -31,6 +31,14 @@ function Metric({ icon, label, value }: MetricProps) {
 /** Seção "hero" com as condições atuais da cidade selecionada. */
 export default function CurrentWeather({ city, current, unit }: CurrentWeatherProps) {
   const location = [city.admin1, city.country].filter(Boolean).join(', ');
+  const hasCurrentData = [
+    current.temperature,
+    current.weatherCode,
+    current.humidity,
+    current.windSpeed,
+    current.pressure,
+    current.precipitation,
+  ].some((value) => value !== null);
 
   return (
     <section
@@ -51,6 +59,11 @@ export default function CurrentWeather({ city, current, unit }: CurrentWeatherPr
             </span>
           </div>
           <p className="mt-2 text-white/80">{getWeatherLabel(current.weatherCode)}</p>
+          {!hasCurrentData && (
+            <p role="status" className="mt-2 text-sm text-white/75">
+              Clima atual indisponível
+            </p>
+          )}
         </div>
 
         <dl className="grid grid-cols-2 gap-2 sm:gap-3 md:min-w-72">

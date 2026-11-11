@@ -174,7 +174,9 @@ describe('App', () => {
 
     const currentWeather = within(await screen.findByRole('region', { name: /clima atual/i }));
     expect(currentWeather.getAllByText('—')).toHaveLength(6);
-    expect(screen.getByRole('status')).toHaveTextContent('Previsão indisponível');
+    expect(currentWeather.getByRole('status')).toHaveTextContent('Clima atual indisponível');
+    const forecast = within(screen.getByRole('region', { name: /previsão de 5 dias/i }));
+    expect(forecast.getByRole('status')).toHaveTextContent('Previsão indisponível');
   });
 
   it('exibe traços para valores ausentes em dias de previsão', async () => {

@@ -44,6 +44,16 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(isString);
 }
 
+function isOptionalNumberArray(value: unknown, length: number): boolean {
+  return (
+    value === undefined ||
+    value === null ||
+    (Array.isArray(value) &&
+      value.length === length &&
+      value.every((item) => item === null || isFiniteNumber(item)))
+  );
+}
+
 function isGeocodingResult(value: unknown): value is GeocodingResult {
   if (!isRecord(value)) return false;
   return (
@@ -70,15 +80,26 @@ function isForecastCurrent(value: unknown): value is Record<string, unknown> {
 
 function isForecastDaily(value: unknown): value is ForecastDailyResponse {
   if (!isRecord(value)) return false;
-  return isStringArray(value.time);
+  if (!isStringArray(value.time)) return false;
+  return (
+    isOptionalNumberArray(value.weather_code, value.time.length) &&
+    isOptionalNumberArray(value.temperature_2m_max, value.time.length) &&
+    isOptionalNumberArray(value.temperature_2m_min, value.time.length) &&
+    isOptionalNumberArray(value.precipitation_probability_max, value.time.length)
+  );
 }
 
-async function fetchWithTimeout(url: string): Promise<Response> {
+async function fetchJsonWithTimeout(
+  url: string,
+): Promise<{ response: Response; payload: unknown | null }> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    return await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, { signal: controller.signal });
+    const payload = response.ok ? await response.json() : null;
+    return { response, payload };
   } catch (error) {
+    if (error instanceof WeatherServiceError) throw error;
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new WeatherServiceError('A requisição demorou demais. Tente novamente.');
     }
@@ -88,25 +109,16 @@ async function fetchWithTimeout(url: string): Promise<Response> {
   }
 }
 
-async function parseJson(response: Response): Promise<unknown> {
-  try {
-    return await response.json();
-  } catch {
-    throw new WeatherServiceError('A API retornou uma resposta inválida. Tente novamente.');
-  }
-}
-
 export async function searchCities(name: string): Promise<City[]> {
   const query = name.trim();
   if (!query) return [];
 
   const url = `${GEOCODING_URL}?name=${encodeURIComponent(query)}&count=5&language=pt&format=json`;
-  const response = await fetchWithTimeout(url);
+  const { response, payload } = await fetchJsonWithTimeout(url);
   if (!response.ok) {
     throw new WeatherServiceError('Não foi possível buscar a cidade. Tente novamente.');
   }
 
-  const payload = await parseJson(response);
   if (!isRecord(payload)) {
     throw new WeatherServiceError('Resposta de busca inválida. Tente novamente.');
   }
@@ -165,17 +177,19 @@ export async function getWeather(city: City): Promise<WeatherData> {
     timezone: 'auto',
   });
 
-  const response = await fetchWithTimeout(`${FORECAST_URL}?${params.toString()}`);
+  const { response, payload } = await fetchJsonWithTimeout(`${FORECAST_URL}?${params.toString()}`);
   if (!response.ok) {
     throw new WeatherServiceError('Não foi possível carregar o clima. Tente novamente.');
   }
 
-  const payload = await parseJson(response);
   if (!isRecord(payload)) {
     throw new WeatherServiceError('Resposta de clima incompleta. Tente novamente.');
   }
   const currentPayload = payload.current;
   const dailyPayload = payload.daily;
+  if (dailyPayload !== undefined && dailyPayload !== null && !isForecastDaily(dailyPayload)) {
+    throw new WeatherServiceError('Resposta de previsão inválida. Tente novamente.');
+  }
   const current = isForecastCurrent(currentPayload) ? currentPayload : null;
   const daily = isForecastDaily(dailyPayload) ? dailyPayload : null;
 

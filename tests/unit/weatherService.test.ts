@@ -97,6 +97,29 @@ describe('weatherService', () => {
       await rejection;
     });
 
+    it('mantém o timeout ativo enquanto lê o corpo JSON', async () => {
+      vi.useFakeTimers();
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((_input: RequestInfo | URL, init?: RequestInit) =>
+          Promise.resolve({
+            ok: true,
+            json: () =>
+              new Promise((_resolve, reject) => {
+                init?.signal?.addEventListener('abort', () => {
+                  reject(new DOMException('Aborted', 'AbortError'));
+                });
+              }),
+          } as Response),
+        ),
+      );
+
+      const request = searchCities('Seattle');
+      const rejection = expect(request).rejects.toThrow('A requisição demorou demais');
+      await vi.advanceTimersByTimeAsync(10_000);
+      await rejection;
+    });
+
     it('lança erro tipado em resposta não-ok', async () => {
       vi.stubGlobal('fetch', mockFetchOnce({}, false));
       await expect(searchCities('Seattle')).rejects.toBeInstanceOf(WeatherServiceError);
@@ -158,7 +181,7 @@ describe('weatherService', () => {
           },
           daily: {
             time: ['2026-06-16', '2026-06-17'],
-            weather_code: [3],
+            weather_code: [3, null],
             temperature_2m_max: [20, 19],
             temperature_2m_min: [12, 11],
             precipitation_probability_max: [20, 90],
@@ -170,6 +193,24 @@ describe('weatherService', () => {
       expect(data.forecast[0].max).toBe(20);
       expect(data.forecast[1].weatherCode).toBeNull();
       expect(data.forecast[1].max).toBe(19);
+    });
+
+    it('rejeita séries diárias com comprimentos incompatíveis', async () => {
+      vi.stubGlobal(
+        'fetch',
+        mockFetchOnce({
+          current: { temperature_2m: 18 },
+          daily: {
+            time: ['2026-06-16', '2026-06-17'],
+            weather_code: [3],
+            temperature_2m_max: [20, 19],
+            temperature_2m_min: [12, 11],
+            precipitation_probability_max: [20, 90],
+          },
+        }),
+      );
+
+      await expect(getWeather(CITY)).rejects.toBeInstanceOf(WeatherServiceError);
     });
 
     it('mantém os dados atuais quando a previsão está indisponível', async () => {

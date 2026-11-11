@@ -167,7 +167,7 @@ test('grid da previsão se adapta a mobile, tablet e desktop com APIs mockadas',
 
 test('viewport mobile renderiza o fluxo com dados da API mockada', async ({ page }) => {
   await mockApis(page);
-  await page.setViewportSize({ width: 375, height: 812 });
+  await page.setViewportSize({ width: 320, height: 780 });
   await page.goto('/');
 
   await page.getByLabel(/buscar cidade/i).fill('Seattle');
@@ -176,4 +176,5 @@ test('viewport mobile renderiza o fluxo com dados da API mockada', async ({ page
 
   await expect(page.getByRole('heading', { name: 'Seattle' })).toBeVisible();
   await expect(page.getByRole('region', { name: /previsão de 5 dias/i })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 });

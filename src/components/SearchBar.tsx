@@ -8,11 +8,16 @@ interface SearchBarProps {
 /** Barra de busca de cidade. Bloqueia submit com input vazio. */
 export default function SearchBar({ onSearch, disabled }: SearchBarProps) {
   const [value, setValue] = useState('');
+  const [validationMessage, setValidationMessage] = useState('');
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const trimmed = value.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      setValidationMessage('Digite o nome de uma cidade para buscar.');
+      return;
+    }
+    setValidationMessage('');
     onSearch(trimmed);
   }
 
@@ -29,21 +34,31 @@ export default function SearchBar({ onSearch, disabled }: SearchBarProps) {
           id="city-search"
           type="text"
           disabled={disabled}
+          aria-invalid={Boolean(validationMessage)}
+          aria-describedby={validationMessage ? 'city-search-error' : undefined}
           enterKeyHint="search"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            setValue(e.target.value);
+            if (e.target.value.trim()) setValidationMessage('');
+          }}
           placeholder="Buscar cidade…"
           autoComplete="off"
           className="min-w-0 flex-1 bg-transparent text-white placeholder-white/60 outline-none disabled:opacity-60"
         />
         <button
           type="submit"
-          disabled={disabled || !value.trim()}
+          disabled={disabled}
           className="min-h-11 shrink-0 rounded-lg bg-accent-500 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-accent-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-400 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4"
         >
           Buscar
         </button>
       </div>
+      {validationMessage && (
+        <p id="city-search-error" role="alert" className="mt-2 text-sm text-rose-300">
+          {validationMessage}
+        </p>
+      )}
     </form>
   );
 }
